@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sampleColor, trackColor, toUnit, palmCenter, handFacing, ACTIVE } from '../src/tracker.js';
+import { sampleColor, trackColor, toUnit, palmCenter, handFacing, isFist, ACTIVE } from '../src/tracker.js';
 
 const W = 160;
 const H = 120;
@@ -84,6 +84,24 @@ describe('tracker', () => {
   it('mirrors the answer for a left hand and reports an edge-on hand', () => {
     expect(handFacing(hand(), false)).toBe('back');
     expect(handFacing(hand({ squeeze: 0.1 }))).toBe('edge');
+  });
+
+  it('sees a fist when the fingertips fold back toward the wrist', () => {
+    const open = hand();
+    const closed = hand();
+    for (const tip of [8, 12, 16, 20]) {
+      const base = open[tip - 3];
+      open[tip - 2] = { x: base.x, y: base.y - 0.08 };
+      open[tip] = { x: base.x, y: base.y - 0.2 };
+      closed[tip - 2] = { x: base.x, y: base.y - 0.06 };
+      closed[tip] = { x: base.x, y: base.y + 0.03 };
+    }
+    expect(isFist(open)).toBe(false);
+    expect(isFist(closed)).toBe(true);
+    closed[8] = open[8]; // pointing with one finger is still a closed hand
+    expect(isFist(closed)).toBe(true);
+    closed[12] = open[12];
+    expect(isFist(closed)).toBe(false);
   });
 
   it('puts the palm centre between the wrist and the finger bases', () => {

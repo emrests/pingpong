@@ -107,6 +107,7 @@ async function camMode(mode) {
 }
 
 let shownFacing = null;
+let wasFist = false;
 
 function driveFromCamera(dt) {
   const t = camera.target();
@@ -118,6 +119,10 @@ function driveFromCamera(dt) {
     setPaddleXZ(game.near, game.near.pos.x + (x - game.near.pos.x) * k, game.near.pos.z + (z - game.near.pos.z) * k);
   }
   if (camera.mode !== 'hand') return;
+  // closing the hand tosses the serve, so the player can stand back from the keyboard
+  const fist = camera.fist();
+  if (fist && !wasFist && game.phase === 'held' && game.rules.server === 'near') game.toss('near');
+  wasFist = fist;
   const facing = camera.facing();
   game.near.buttons.left = facing === 'palm';
   game.near.buttons.right = facing === 'back';

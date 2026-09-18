@@ -123,6 +123,15 @@ export function handFacing(lm, rightHand = true) {
   return sin < 0 === rightHand ? 'palm' : 'back';
 }
 
+// A finger is curled when its tip is nearer the wrist than its middle joint.
+// Three of the four fingers curled counts as a fist (the thumb is ignored).
+export function isFist(lm, aspect = 4 / 3) {
+  const d = (i) => Math.hypot((lm[i].x - lm[0].x) * aspect, lm[i].y - lm[0].y);
+  let curled = 0;
+  for (const tip of [8, 12, 16, 20]) if (d(tip) < d(tip - 2)) curled++;
+  return curled >= 3;
+}
+
 // Pixel centroid -> 0..1 paddle coordinates over the active part of the frame.
 export function toUnit(point, width, height) {
   const u = (point.x / width - ACTIVE.uMin) / (ACTIVE.uMax - ACTIVE.uMin);

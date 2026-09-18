@@ -5,7 +5,7 @@ const CAM_HELP = {
   hand:
     'El: raketi hareket ettir (yukarı = fileye doğru) · Topa doğru savur: vuruş<br />' +
     'Avuç içi kameraya: topspin · El üstü kameraya: backspin · El yan: düz<br />' +
-    'Servis: Space ya da tıkla (top havaya) ve düşerken vur · Menü: sağ üstteki buton',
+    'Servis: elini yumruk yap (top havaya), aç ve düşerken vur · Menü: sağ üstteki buton',
   color:
     'Defter: raketi hareket ettir (yukarı = fileye doğru) · Topa doğru savur: vuruş<br />' +
     'Sol tuş basılı: topspin · Sağ tuş basılı: backspin<br />' +
