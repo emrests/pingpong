@@ -34,11 +34,42 @@ describe('ai', () => {
     expect(g.hitCount).toBeGreaterThanOrEqual(2);
   });
 
+  it('with alreadyBounced tracks a ball past its far-side bounce, but not without it', () => {
+    const ball = { pos: vec(0, 0.78, -0.8), vel: vec(0, 2.5, -5), spin: vec() };
+    const p = predictIntercept(ball, true);
+    expect(p).not.toBe(null);
+    expect(p.z).toBeLessThan(-0.8);
+    expect(p.y).toBeGreaterThan(0.78);
+    expect(predictIntercept(ball, false)).toBe(null);
+  });
+
+  it.each([
+    ['vec(0,0,-3)', vec(0, 0, -3)],
+    ['vec(2,0,-4)', vec(2, 0, -4)],
+    ['vec(-2,0,-6)', vec(-2, 0, -6)],
+  ])('the CPU hits back a near swing of %s after its own bounce', (_label, vel) => {
+    const g = createGame({});
+    const ai = createAI(() => 0.5);
+    g.update(1 / 60);
+    g.forceHit('near', { vel, buttons: { left: false, right: false } });
+    let checked = false;
+    for (let i = 0; i < 60 * 5; i++) {
+      updateAI(ai, g, 1 / 60);
+      g.update(1 / 60);
+      if (g.ball.pos.z <= g.far.pos.z || g.hitCount >= 2) {
+        expect(g.hitCount).toBeGreaterThanOrEqual(2);
+        checked = true;
+        break;
+      }
+    }
+    expect(checked).toBe(true);
+  });
+
   it('serves when it is its turn', () => {
-    const g = createGame({ firstServer: 'far' });
+    const sides = [];
+    const g = createGame({ firstServer: 'far', hooks: { onHit: (side) => sides.push(side) } });
     const ai = createAI(() => 0.5);
     play(g, ai, 2);
-    expect(g.rules.lastHitter === 'far' || g.rules.score.near + g.rules.score.far > 0).toBe(true);
-    expect(g.hitCount).toBeGreaterThanOrEqual(1);
+    expect(sides[0]).toBe('far');
   });
 });

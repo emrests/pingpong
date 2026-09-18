@@ -4,9 +4,9 @@ import { stepBall } from './physics.js';
 
 const SERVE_DELAY = 1.0;
 
-export function predictIntercept(ball) {
+export function predictIntercept(ball, alreadyBounced = false) {
   const b = cloneBall(ball);
-  let bounced = false;
+  let bounced = alreadyBounced;
   for (let i = 0; i < 720; i++) {
     for (const e of stepBall(b)) {
       if (e.type === 'floor') return null;
@@ -22,7 +22,7 @@ export function predictIntercept(ball) {
 }
 
 export function createAI(rng = Math.random) {
-  return { rng, planFor: -1, errX: 0, errZ: 0, serveTimer: 0 };
+  return { rng, planFor: -1, errX: 0, errZ: 0, serveTimer: 0, lastTarget: null };
 }
 
 function planSwing(ai, game) {
@@ -30,6 +30,7 @@ function planSwing(ai, game) {
   ai.planFor = game.hitCount;
   ai.errX = (rng() - 0.5) * 2 * AI_ERROR;
   ai.errZ = (rng() - 0.5) * 2 * AI_ERROR;
+  ai.lastTarget = null;
   const r = rng();
   game.far.synthetic = {
     // far side swings toward +z
@@ -56,10 +57,12 @@ export function updateAI(ai, game, dt) {
   }
 
   if (game.phase === 'live' && game.rules.lastHitter === 'near') {
-    const p = predictIntercept(game.ball);
-    if (p) {
-      tx = p.x + ai.errX;
-      tz = p.z + ai.errZ;
+    const p = predictIntercept(game.ball, game.rules.bounces >= 1);
+    if (p) ai.lastTarget = p;
+    const target = p || ai.lastTarget;
+    if (target) {
+      tx = target.x + ai.errX;
+      tz = target.z + ai.errZ;
     }
   }
 
