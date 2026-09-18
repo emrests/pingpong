@@ -9,6 +9,7 @@ const SIDESPIN_THRESHOLD = 1.5;
 // Pick the launch elevation whose first bounce is closest to the target depth.
 // If no elevation lands on the far side, take the lowest one that at least
 // clears the net (the ball goes long) — that is how over-hit flat shots miss.
+// `lands` tells the caller whether a far-side bounce was actually found.
 function solveElevation(pos, speed, dirX, dirZ, spin, targetZ) {
   let best = null;
   let bestErr = Infinity;
@@ -29,7 +30,7 @@ function solveElevation(pos, speed, dirX, dirZ, spin, targetZ) {
       firstClear = vel;
     }
   }
-  return best || firstClear || last;
+  return { vel: best || firstClear || last, lands: best !== null };
 }
 
 export function computeHit(ball, paddle) {
@@ -59,6 +60,15 @@ export function computeHit(ball, paddle) {
 
   // Topspin axis for horizontal direction d is (up × d) = (dz, 0, -dx).
   const spin = vec(top * dz, side, -top * dx);
-  const vel = solveElevation(ball.pos, speed, dx, dz, spin, targetZ);
-  return { vel, spin };
+
+  // If the chosen speed can't reach the far side, speed the shot up in small
+  // steps (keeping direction, spin and target fixed) until one lands or we
+  // hit MAX_SPEED. Never lowers the speed, so over-hit shots still go long.
+  let hitSpeed = speed;
+  let result = solveElevation(ball.pos, hitSpeed, dx, dz, spin, targetZ);
+  while (!result.lands && hitSpeed < MAX_SPEED) {
+    hitSpeed = Math.min(MAX_SPEED, hitSpeed + 0.5);
+    result = solveElevation(ball.pos, hitSpeed, dx, dz, spin, targetZ);
+  }
+  return { vel: result.vel, spin };
 }

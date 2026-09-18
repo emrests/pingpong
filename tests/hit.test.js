@@ -76,4 +76,29 @@ describe('computeHit', () => {
     expect(top.type).toBe('bounce');
     expect(top.side).toBe('far');
   });
+
+  const deepPositions = [
+    vec(0.74, 0.97, 2.07),
+    vec(0.3, 0.98, 2.2),
+    vec(-0.59, 0.95, 2.08),
+  ];
+
+  it('a stationary paddle deep behind the table still reaches the far side', () => {
+    for (const pos of deepPositions) {
+      for (const buttons of [{}, { right: true }, { left: true }]) {
+        const b = { pos, vel: vec(0, -0.5, 3), spin: vec() };
+        const r = land(b, computeHit(b, paddle(vec(), buttons)));
+        expect(r.type).toBe('bounce');
+        expect(r.side).toBe('far');
+      }
+    }
+  });
+
+  it('weak shots are only sped up as much as needed', () => {
+    for (const pos of deepPositions) {
+      const b = { pos, vel: vec(0, -0.5, 3), spin: vec() };
+      const speed = len(computeHit(b, paddle(vec())).vel);
+      expect(speed).toBeLessThan(9);
+    }
+  });
 });
