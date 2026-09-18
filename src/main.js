@@ -4,6 +4,7 @@ import { movePaddle, setPaddleXZ } from './paddle.js';
 import { createRenderer } from './render.js';
 import { createUI } from './ui.js';
 import { createNet } from './net.js';
+import { createCamera } from './camera.js';
 import { other } from './rules.js';
 import { mirror, mirrorBall } from './vec.js';
 import { isBall, isVec, isSide, isScore } from './validate.js';
@@ -11,6 +12,7 @@ import { PADDLE_BOUNDS } from './constants.js';
 
 const canvas = document.getElementById('scene');
 const view = createRenderer(canvas);
+const camera = createCamera(document.getElementById('cam-view'));
 
 let game = null;
 let ai = null;
@@ -50,7 +52,80 @@ const ui = createUI({
     }
   },
   onLeave: () => leave(),
+  onCamOn: () => camOn(),
+  onCamOff: () => {
+    camera.stop();
+    ui.setCam(null);
+  },
+  onCamMode: (mode) => camMode(mode),
+  onCamHand: () => {
+    camera.setRightHand(!camera.rightHand);
+    showCam();
+  },
+  onCamCalibrate: () => {
+    camera.calibrate();
+    showCam();
+  },
 });
+
+// ---- camera control ----
+function camMessage() {
+  if (camera.mode === 'hand') {
+    return camera.ready
+      ? 'Açık elini kameraya göster. Çerçevenin içi masanın tamamı; yukarı = fileye doğru.'
+      : 'El modeli yükleniyor…';
+  }
+  return camera.ready
+    ? 'Turuncu boyanan yer defter olmalı; değilse rengi tekrar al.'
+    : 'Defteri kutuya tut ve "Rengi al"a bas. Parlak, tek renk bir kapak en iyisi.';
+}
+
+function showCam(message = camMessage()) {
+  ui.setCam({ mode: camera.mode, rightHand: camera.rightHand }, message);
+}
+
+async function camOn() {
+  try {
+    await camera.start();
+  } catch {
+    ui.showMenu('Kameraya erişilemedi');
+    return;
+  }
+  camMode(camera.mode);
+}
+
+async function camMode(mode) {
+  const loading = camera.setMode(mode);
+  showCam();
+  try {
+    await loading;
+  } catch {
+    if (camera.on && camera.mode === 'hand') showCam('El modeli yüklenemedi — bağlantını kontrol et ya da Defter modunu dene.');
+    return;
+  }
+  if (camera.on) showCam();
+}
+
+let shownFacing = null;
+
+function driveFromCamera(dt) {
+  const t = camera.target();
+  if (t) {
+    // ease toward the camera position: it arrives at ~30 Hz and a stepped paddle would swing in bursts
+    const k = 1 - Math.exp(-30 * dt);
+    const x = PADDLE_BOUNDS.xMin + t.u * (PADDLE_BOUNDS.xMax - PADDLE_BOUNDS.xMin);
+    const z = PADDLE_BOUNDS.zMin + t.v * (PADDLE_BOUNDS.zMax - PADDLE_BOUNDS.zMin);
+    setPaddleXZ(game.near, game.near.pos.x + (x - game.near.pos.x) * k, game.near.pos.z + (z - game.near.pos.z) * k);
+  }
+  if (camera.mode !== 'hand') return;
+  const facing = camera.facing();
+  game.near.buttons.left = facing === 'palm';
+  game.near.buttons.right = facing === 'back';
+  if (facing !== shownFacing) {
+    shownFacing = facing;
+    ui.setSpin(game.near.buttons);
+  }
+}
 
 function sendScore() {
   net.send({ type: 'score', near: game.rules.score.far, far: game.rules.score.near });
@@ -264,10 +339,11 @@ canvas.addEventListener('mousedown', (e) => {
   if (!game) return;
   const wasLocked = locked();
   const wasPaused = paused;
-  if (!wasLocked) requestLock();
+  // camera control needs no cursor grab: clicks only toss and pick spin
+  if (!camera.ready && !wasLocked) requestLock();
   paused = false;
   // the click that grabs the cursor back or un-pauses must not also swing
-  if (!lockDenied && (!wasLocked || wasPaused)) return;
+  if (!camera.ready && !lockDenied && (!wasLocked || wasPaused)) return;
   if (e.button === 0) game.near.buttons.left = true;
   if (e.button === 2) game.near.buttons.right = true;
   ui.setSpin(game.near.buttons);
@@ -282,7 +358,7 @@ window.addEventListener('mouseup', (e) => {
 });
 
 window.addEventListener('mousemove', (e) => {
-  if (!game || paused) return;
+  if (!game || paused || camera.ready) return;
   if (locked()) {
     movePaddle(game.near, e.movementX, e.movementY);
   } else {
@@ -296,6 +372,12 @@ window.addEventListener('mousemove', (e) => {
       PADDLE_BOUNDS.zMin + v * (PADDLE_BOUNDS.zMax - PADDLE_BOUNDS.zMin),
     );
   }
+});
+
+window.addEventListener('keydown', (e) => {
+  if (e.code !== 'Space' || !game || e.target instanceof HTMLInputElement) return;
+  e.preventDefault();
+  if (game.phase === 'held' && game.rules.server === 'near') game.toss('near');
 });
 
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -337,7 +419,9 @@ let shownOver = false;
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
+  camera.update(dt);
   if (game && !paused) {
+    if (camera.ready) driveFromCamera(dt);
     if (ai) updateAI(ai, game, dt);
     if (net) {
       if (farTarget) {

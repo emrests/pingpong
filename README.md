@@ -22,6 +22,13 @@ Mouse ile yön, güç ve falso kontrolü olan 3D masa tenisi. Bilgisayara karş�
 - Esc: imleci bırak (antrenmanda duraklatır, online oyun devam eder)
 - Menü (sağ üstteki buton): maçtan çık ve menüye dön
 
+## Kamera ile oynama
+
+Menüde "Kamera ile oyna": raket webcam görüntüsünden sürülür (görüntü cihazdan çıkmaz). Önizlemedeki çerçevenin içi masanın tamamıdır; yukarı = fileye doğru. Servis: Space ya da tık.
+
+- **El**: açık el takip edilir (MediaPipe Hand Landmarker, ilk kullanımda ~15 MB indirir). Avuç içi kameraya = topspin, el üstü = backspin, el yan = düz. Falso ters çıkıyorsa "Sağ el / Sol el"i değiştir.
+- **Defter**: defteri kutuya tutup "Rengi al"; o renk takip edilir. Parlak, tek renk kapak en iyisi. Falso mouse tuşlarıyla.
+
 ## Zorluk
 
 Antrenman menüsünde Kolay / Orta / Zor. Seviye; rakibin vuruş hızını, yön açısını, falso sıklığını, hareket hızını ve isabetini belirler (`AI_LEVELS`, `src/ai.js`).

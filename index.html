@@ -41,6 +41,14 @@
       .row button { width: auto; margin-top: 0; }
       .row.levels button { flex: 1; }
       .panel .label { font-size: 12px; letter-spacing: .08em; color: var(--muted); margin-top: 4px; }
+      #cam { position: fixed; top: 16px; left: 16px; width: 224px; background: var(--card); border-radius: 14px;
+        padding: 8px; box-shadow: 0 2px 12px #0001; z-index: 2; }
+      #cam canvas { display: block; width: 100%; border-radius: 8px; background: #000; }
+      #cam-msg { font-size: 12px; color: var(--muted); line-height: 1.4; margin: 6px 2px 0; }
+      #cam button { padding: 8px 10px; font-size: 13px; }
+      #cam button.on { background: var(--ink); color: #fff; }
+      #cam.compact { width: 144px; padding: 4px; pointer-events: none; }
+      #cam.compact .row, #cam.compact button, #cam.compact #cam-msg { display: none; }
       #code { font-size: 40px; letter-spacing: .3em; text-align: center; font-weight: 700; margin: 8px 0 4px; user-select: text; }
     </style>
   </head>
@@ -64,6 +72,18 @@
     </div>
     <div id="banner" class="hidden"></div>
 
+    <div id="cam" class="hidden">
+      <canvas id="cam-view"></canvas>
+      <div id="cam-msg"></div>
+      <div class="row">
+        <button data-cam-mode="hand" class="secondary">El</button>
+        <button data-cam-mode="color" class="secondary">Defter</button>
+      </div>
+      <button id="btn-cam-hand" class="secondary"></button>
+      <button id="btn-cam-calibrate">Rengi al</button>
+      <button id="btn-cam-off" class="secondary">Kamerayı kapat</button>
+    </div>
+
     <div id="menu" class="panel">
       <h1>Ping Pong</h1>
       <p>Yön, güç ve falso tamamen mouse ile. <span id="menu-msg" class="msg"></span></p>
@@ -78,6 +98,7 @@
         <input id="join-code" maxlength="4" placeholder="KOD" />
         <button id="btn-join" class="secondary">Katıl</button>
       </div>
+      <button id="btn-cam" class="secondary">Kamera ile oyna (el ya da defter)</button>
     </div>
 
     <div id="lobby" class="panel hidden">

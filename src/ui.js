@@ -1,6 +1,17 @@
 const $ = (id) => document.getElementById(id);
 const show = (el, on) => el.classList.toggle('hidden', !on);
 
+const CAM_HELP = {
+  hand:
+    'El: raketi hareket ettir (yukarı = fileye doğru) · Topa doğru savur: vuruş<br />' +
+    'Avuç içi kameraya: topspin · El üstü kameraya: backspin · El yan: düz<br />' +
+    'Servis: Space ya da tıkla (top havaya) ve düşerken vur · Menü: sağ üstteki buton',
+  color:
+    'Defter: raketi hareket ettir (yukarı = fileye doğru) · Topa doğru savur: vuruş<br />' +
+    'Sol tuş basılı: topspin · Sağ tuş basılı: backspin<br />' +
+    'Servis: Space ya da tıkla (top havaya) ve düşerken vur · Menü: sağ üstteki buton',
+};
+
 export function createUI(actions) {
   const el = {
     hud: $('hud'), spin: $('spin'), status: $('status'), help: $('help'), banner: $('banner'),
@@ -8,7 +19,9 @@ export function createUI(actions) {
     menu: $('menu'), menuMsg: $('menu-msg'), lobby: $('lobby'), code: $('code'),
     over: $('over'), overTitle: $('over-title'), overScore: $('over-score'),
     sNear: $('s-near'), sFar: $('s-far'), joinCode: $('join-code'), copy: $('btn-copy'),
+    cam: $('cam'), camMsg: $('cam-msg'),
   };
+  const mouseHelp = el.help.innerHTML;
   let bannerTimer = 0;
   let inviteLink = '';
 
@@ -25,6 +38,11 @@ export function createUI(actions) {
   el.menuBtn.onclick = () => actions.onLeave();
   $('btn-leave').onclick = () => actions.onLeave();
   $('btn-rematch').onclick = () => actions.onRematch();
+  $('btn-cam').onclick = () => actions.onCamOn();
+  $('btn-cam-off').onclick = () => actions.onCamOff();
+  $('btn-cam-hand').onclick = () => actions.onCamHand();
+  $('btn-cam-calibrate').onclick = () => actions.onCamCalibrate();
+  for (const b of document.querySelectorAll('[data-cam-mode]')) b.onclick = () => actions.onCamMode(b.dataset.camMode);
   el.copy.onclick = async () => {
     try {
       await navigator.clipboard.writeText(inviteLink);
@@ -41,6 +59,7 @@ export function createUI(actions) {
     show(el.spin, playing);
     show(el.help, playing);
     show(el.menuBtn, playing);
+    el.cam.classList.toggle('compact', panel !== el.menu);
   }
 
   return {
@@ -75,6 +94,20 @@ export function createUI(actions) {
     },
     status(text) {
       el.status.textContent = text;
+    },
+    // cam: null when the camera is off, else { mode, rightHand }
+    setCam(cam, message = '') {
+      show(el.cam, cam !== null);
+      show($('btn-cam'), cam === null);
+      el.camMsg.textContent = message;
+      el.help.innerHTML = cam === null ? mouseHelp : CAM_HELP[cam.mode];
+      if (cam === null) return;
+      for (const b of document.querySelectorAll('[data-cam-mode]')) {
+        b.classList.toggle('on', b.dataset.camMode === cam.mode);
+      }
+      show($('btn-cam-hand'), cam.mode === 'hand');
+      show($('btn-cam-calibrate'), cam.mode === 'color');
+      $('btn-cam-hand').textContent = cam.rightHand ? 'Sağ el (değiştir)' : 'Sol el (değiştir)';
     },
     gameOver(won, rules) {
       el.overTitle.textContent = won ? 'Kazandın!' : 'Kaybettin';
