@@ -104,6 +104,26 @@ describe('tracker', () => {
     expect(isFist(closed)).toBe(false);
   });
 
+  it('uses 3D landmarks to see a fist that points at the camera', () => {
+    // in the picture everything collapses onto the knuckles, so the 2D test sees nothing
+    const lm = Array.from({ length: 21 }, () => ({ x: 0.5, y: 0.5 }));
+    lm[0] = { x: 0.5, y: 0.7 };
+    for (const tip of [8, 12, 16, 20]) lm[tip] = { x: 0.5, y: 0.49 };
+    const world = Array.from({ length: 21 }, () => ({ x: 0, y: 0, z: 0 }));
+    const straight = world.map((p) => ({ ...p }));
+    for (const tip of [8, 12, 16, 20]) {
+      world[tip - 2] = { x: 0, y: 0, z: -0.04 };
+      world[tip - 1] = { x: 0, y: 0.025, z: -0.04 };
+      world[tip] = { x: 0, y: 0.025, z: -0.015 };
+      straight[tip - 2] = { x: 0, y: 0, z: -0.04 };
+      straight[tip - 1] = { x: 0, y: 0, z: -0.065 };
+      straight[tip] = { x: 0, y: 0, z: -0.09 };
+    }
+    expect(isFist(lm)).toBe(false);
+    expect(isFist(lm, world)).toBe(true);
+    expect(isFist(lm, straight)).toBe(false);
+  });
+
   it('puts the palm centre between the wrist and the finger bases', () => {
     const c = palmCenter(hand());
     expect(c.x).toBeCloseTo(0.5);

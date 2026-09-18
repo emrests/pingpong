@@ -3,7 +3,8 @@ import { sampleColor, trackColor, toUnit, palmCenter, handFacing, isFist, ACTIVE
 const W = 160;
 const H = 120;
 const BOX = { x: W / 2 - 12, y: H / 2 - 12, w: 24, h: 24 }; // colour calibration sample area
-const FIST_FRAMES = 3; // camera frames a fist must persist, so one bad detection cannot toss the ball
+const FIST_ON = 2; // fist score needed; the score leaks instead of resetting, so one flickering frame neither tosses nor blocks a toss
+const FIST_MAX = 4;
 const LOST_AFTER = 0.4; // seconds without a match before the target is dropped
 
 // Keep in step with the @mediapipe/tasks-vision version in package.json.
@@ -62,20 +63,25 @@ export function createCamera(view) {
 
   function drawMarker(point) {
     ctx.strokeStyle = '#fff';
+    ctx.fillStyle = '#fff';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(point.x, point.y, 6, 0, Math.PI * 2);
+    ctx.arc(point.x, point.y, fistFrames >= FIST_ON ? 10 : 6, 0, Math.PI * 2);
+    if (fistFrames >= FIST_ON) ctx.fill(); // solid dot = fist seen
     ctx.stroke();
   }
 
   function trackHand() {
-    const lm = landmarker.detectForVideo(video, performance.now()).landmarks[0];
+    const result = landmarker.detectForVideo(video, performance.now());
+    const lm = result.landmarks[0];
     drawActiveArea();
     if (!lm) return null;
     ctx.fillStyle = '#e8573a';
     for (const p of lm) ctx.fillRect((1 - p.x) * W - 1, p.y * H - 1, 3, 3);
     facing = handFacing(lm, rightHand);
-    fistFrames = isFist(lm) ? fistFrames + 1 : 0;
+    fistFrames = isFist(lm, result.worldLandmarks[0] ?? null, video.videoWidth / video.videoHeight)
+      ? Math.min(FIST_MAX, fistFrames + 1)
+      : Math.max(0, fistFrames - 1);
     const c = palmCenter(lm);
     return { x: (1 - c.x) * W, y: c.y * H }; // landmarks are unmirrored, the picture is mirrored
   }
@@ -194,7 +200,7 @@ export function createCamera(view) {
 
     // Hand mode only: true while the hand is held closed.
     fist() {
-      return mode === 'hand' && fistFrames >= FIST_FRAMES;
+      return mode === 'hand' && fistFrames >= FIST_ON;
     },
 
     // Hand mode only: 'palm' | 'back' | 'edge', or null.

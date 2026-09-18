@@ -107,7 +107,7 @@ async function camMode(mode) {
 }
 
 let shownFacing = null;
-let wasFist = false;
+let fistArmed = true; // an open hand re-arms the toss, so a fist held through the point pause still serves
 
 function driveFromCamera(dt) {
   const t = camera.target();
@@ -120,9 +120,11 @@ function driveFromCamera(dt) {
   }
   if (camera.mode !== 'hand') return;
   // closing the hand tosses the serve, so the player can stand back from the keyboard
-  const fist = camera.fist();
-  if (fist && !wasFist && game.phase === 'held' && game.rules.server === 'near') game.toss('near');
-  wasFist = fist;
+  if (!camera.fist()) fistArmed = true;
+  else if (fistArmed && game.phase === 'held' && game.rules.server === 'near') {
+    fistArmed = false;
+    game.toss('near');
+  }
   const facing = camera.facing();
   game.near.buttons.left = facing === 'palm';
   game.near.buttons.right = facing === 'back';

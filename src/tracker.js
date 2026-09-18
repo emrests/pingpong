@@ -123,12 +123,24 @@ export function handFacing(lm, rightHand = true) {
   return sin < 0 === rightHand ? 'palm' : 'back';
 }
 
-// A finger is curled when its tip is nearer the wrist than its middle joint.
+const CURL_RATIO = 0.65; // fingertip-to-base distance over finger length: ~0.3 curled, ~0.95 straight
+
 // Three of the four fingers curled counts as a fist (the thumb is ignored).
-export function isFist(lm, aspect = 4 / 3) {
-  const d = (i) => Math.hypot((lm[i].x - lm[0].x) * aspect, lm[i].y - lm[0].y);
+// A finger is curled when, in the picture, its tip is nearer the wrist than its
+// middle joint — or, given the metric 3D `world` landmarks, when the tip sits
+// close to the finger's base. The 3D test still works with the fist turned
+// toward the camera, where the 2D one is foreshortened.
+export function isFist(lm, world = null, aspect = 4 / 3) {
+  const flat = (i) => Math.hypot((lm[i].x - lm[0].x) * aspect, lm[i].y - lm[0].y);
+  const gap = (a, b) => Math.hypot(world[a].x - world[b].x, world[a].y - world[b].y, world[a].z - world[b].z);
   let curled = 0;
-  for (const tip of [8, 12, 16, 20]) if (d(tip) < d(tip - 2)) curled++;
+  for (const tip of [8, 12, 16, 20]) {
+    const folded = flat(tip) < flat(tip - 2);
+    const tucked =
+      world !== null &&
+      gap(tip, tip - 3) < CURL_RATIO * (gap(tip - 3, tip - 2) + gap(tip - 2, tip - 1) + gap(tip - 1, tip));
+    if (folded || tucked) curled++;
+  }
   return curled >= 3;
 }
 
