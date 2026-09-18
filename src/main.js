@@ -19,7 +19,8 @@ let isHost = false;
 let rtt = 0;
 let farTarget = null;
 let lastPaddleSend = 0;
-let lastPing = 0;
+let lastHeard = 0;
+let pingInterval = null;
 
 const REASONS = {
   out: 'Dışarı',
@@ -109,6 +110,8 @@ function onMessage(msg) {
     return;
   }
   if (msg.type === 'restart') return startOnline();
+  if (msg.type === 'bye') return leave('Rakip oyundan ayrıldı');
+  if (msg.type === 'full') return leave('Oda dolu');
   if (!game) return;
   if (msg.type === 'paddle') {
     farTarget = msg.pos;
@@ -128,26 +131,54 @@ function onMessage(msg) {
   }
 }
 
+function startPingInterval() {
+  clearInterval(pingInterval);
+  pingInterval = setInterval(() => {
+    if (!net) return;
+    net.send({ type: 'ping', t: performance.now() });
+    if (performance.now() - lastHeard > 8000) leave('Rakibin bağlantısı koptu');
+  }, 1000);
+}
+
 function makeNet() {
-  return createNet({
-    onOpen: () => startOnline(),
-    onMessage,
-    onClose: () => leave('Rakibin bağlantısı koptu'),
-    onError: netError,
+  const self = createNet({
+    onOpen: () => {
+      if (net !== self) return;
+      lastHeard = performance.now();
+      startPingInterval();
+      startOnline();
+    },
+    onMessage: (msg) => {
+      if (net !== self) return;
+      lastHeard = performance.now();
+      onMessage(msg);
+    },
+    onClose: () => {
+      if (net !== self) return;
+      leave('Rakibin bağlantısı koptu');
+    },
+    onError: (err) => {
+      if (net !== self) return;
+      netError(err);
+    },
   });
+  return self;
 }
 
 async function hostRoom() {
   leave();
   isHost = true;
-  net = makeNet();
+  const mine = makeNet();
+  net = mine;
   ui.showMenu('Oda kuruluyor…');
   try {
-    const code = await net.host();
+    const code = await mine.host();
+    if (net !== mine) return;
     const link = `${location.origin}${location.pathname}?room=${code}`;
     ui.showLobby(code, link);
     ui.status('Rakip bekleniyor');
   } catch (err) {
+    if (net !== mine) return;
     netError(err);
   }
 }
@@ -155,12 +186,15 @@ async function hostRoom() {
 async function joinRoom(code) {
   leave();
   isHost = false;
-  net = makeNet();
+  const mine = makeNet();
+  net = mine;
   ui.showMenu('Bağlanıyor…');
   ui.status(`Oda ${code}`);
   try {
-    await net.join(code);
+    await mine.join(code);
+    if (net !== mine) return;
   } catch (err) {
+    if (net !== mine) return;
     netError(err);
   }
 }
@@ -170,6 +204,9 @@ function leave(message = '') {
   ai = null;
   const n = net;
   net = null; // cleared first so the close handler does not recurse
+  clearInterval(pingInterval);
+  pingInterval = null;
+  n?.send({ type: 'bye' });
   n?.close();
   rtt = 0;
   if (document.pointerLockElement) document.exitPointerLock();
@@ -225,6 +262,10 @@ document.addEventListener('pointerlockchange', () => {
   }
 });
 
+window.addEventListener('pagehide', () => {
+  if (net) net.send({ type: 'bye' });
+});
+
 // ---- loop ----
 let last = performance.now();
 let shownOver = false;
@@ -248,10 +289,6 @@ function frame(now) {
           left: game.near.buttons.left,
           right: game.near.buttons.right,
         });
-      }
-      if (now - lastPing > 2000) {
-        lastPing = now;
-        net.send({ type: 'ping', t: now });
       }
     }
     game.update(dt);

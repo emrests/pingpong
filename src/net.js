@@ -35,7 +35,12 @@ export function createNet(handlers) {
       });
       p.on('connection', (c) => {
         if (conn) {
-          c.close(); // room is full
+          // room is full: let this connection open, tell it so, then close it —
+          // never attach it, never trigger the host's handlers.
+          c.on('open', () => {
+            c.send({ type: 'full' });
+            setTimeout(() => c.close(), 500);
+          });
           return;
         }
         attach(c);
