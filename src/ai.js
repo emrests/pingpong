@@ -4,6 +4,14 @@ import { stepBall } from './physics.js';
 
 const SERVE_DELAY = 1.0;
 
+// speed: paddle movement (m/s); error: aim error (m); forward: swing speed range (m/s),
+// which sets the ball speed; lateral: max sideways swing (m/s); topspin/backspin: chance per shot.
+export const AI_LEVELS = {
+  easy: { speed: 2.0, error: 0.14, forward: [0, 1.2], lateral: 1.5, topspin: 0.1, backspin: 0.1 },
+  medium: { speed: 2.4, error: 0.11, forward: [0.8, 2.6], lateral: 3, topspin: 0.25, backspin: 0.2 },
+  hard: { speed: AI_SPEED, error: AI_ERROR, forward: [2, 6], lateral: 5, topspin: 0.4, backspin: 0.2 },
+};
+
 export function predictIntercept(ball, alreadyBounced = false) {
   const b = cloneBall(ball);
   let bounced = alreadyBounced;
@@ -21,21 +29,22 @@ export function predictIntercept(ball, alreadyBounced = false) {
   return null;
 }
 
-export function createAI(rng = Math.random) {
-  return { rng, planFor: -1, errX: 0, errZ: 0, serveTimer: 0, lastTarget: null };
+export function createAI(rng = Math.random, level = 'hard') {
+  return { rng, level: AI_LEVELS[level] ?? AI_LEVELS.hard, planFor: -1, errX: 0, errZ: 0, serveTimer: 0, lastTarget: null };
 }
 
 function planSwing(ai, game) {
-  const { rng } = ai;
+  const { rng, level } = ai;
+  const [fMin, fMax] = level.forward;
   ai.planFor = game.hitCount;
-  ai.errX = (rng() - 0.5) * 2 * AI_ERROR;
-  ai.errZ = (rng() - 0.5) * 2 * AI_ERROR;
+  ai.errX = (rng() - 0.5) * 2 * level.error;
+  ai.errZ = (rng() - 0.5) * 2 * level.error;
   ai.lastTarget = null;
   const r = rng();
   game.far.synthetic = {
     // far side swings toward +z
-    vel: vec((rng() - 0.5) * 5, 0, 2 + rng() * 4),
-    buttons: { left: r < 0.4, right: r >= 0.4 && r < 0.6 },
+    vel: vec((rng() - 0.5) * level.lateral, 0, fMin + rng() * (fMax - fMin)),
+    buttons: { left: r < level.topspin, right: r >= level.topspin && r < level.topspin + level.backspin },
   };
 }
 
@@ -72,7 +81,7 @@ export function updateAI(ai, game, dt) {
   const dx = tx - far.pos.x;
   const dz = tz - far.pos.z;
   const dist = Math.sqrt(dx * dx + dz * dz);
-  const maxStep = AI_SPEED * dt;
+  const maxStep = ai.level.speed * dt;
   if (dist <= maxStep) {
     far.pos.x = tx;
     far.pos.z = tz;

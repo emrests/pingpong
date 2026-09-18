@@ -20,6 +20,10 @@ Mouse ile yön, güç ve falso kontrolü olan 3D masa tenisi. Bilgisayara karş�
 - Esc: imleci bırak (antrenmanda duraklatır, online oyun devam eder)
 - Menü (sağ üstteki buton): maçtan çık ve menüye dön
 
+## Zorluk
+
+Antrenman menüsünde Kolay / Orta / Zor. Seviye; rakibin vuruş hızını, yön açısını, falso sıklığını, hareket hızını ve isabetini belirler (`AI_LEVELS`, `src/ai.js`).
+
 ## Online
 
 "Oda kur" → 4 haneli kod / davet linki. Arkadaşın linki açar ya da kodu girer. Bağlantı PeerJS genel sunucusu + STUN üzerinden doğrudan kurulur; çok kısıtlı kurumsal ağlarda çalışmayabilir. Rakibin bağlantısı koparsa (sekme kapanır ya da 8 sn yanıt gelmezse) oyun menüye döner.

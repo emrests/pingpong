@@ -12,7 +12,7 @@ export function createUI(actions) {
   let bannerTimer = 0;
   let inviteLink = '';
 
-  $('btn-practice').onclick = () => actions.onPractice();
+  for (const b of document.querySelectorAll('[data-level]')) b.onclick = () => actions.onPractice(b.dataset.level);
   $('btn-host').onclick = () => actions.onHost();
   $('btn-join').onclick = () => {
     const code = el.joinCode.value.trim().toUpperCase();

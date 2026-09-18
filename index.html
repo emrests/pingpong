@@ -39,6 +39,8 @@
       .row input { flex: 1; min-width: 0; padding: 12px; border-radius: 10px; border: 1px solid #d5d1c6; font-size: 15px;
         text-transform: uppercase; letter-spacing: .2em; text-align: center; background: #fff; }
       .row button { width: auto; margin-top: 0; }
+      .row.levels button { flex: 1; }
+      .panel .label { font-size: 12px; letter-spacing: .08em; color: var(--muted); margin-top: 4px; }
       #code { font-size: 40px; letter-spacing: .3em; text-align: center; font-weight: 700; margin: 8px 0 4px; user-select: text; }
     </style>
   </head>
@@ -65,7 +67,12 @@
     <div id="menu" class="panel">
       <h1>Ping Pong</h1>
       <p>Yön, güç ve falso tamamen mouse ile. <span id="menu-msg" class="msg"></span></p>
-      <button id="btn-practice">Antrenman (bilgisayara karşı)</button>
+      <div class="label">Antrenman (bilgisayara karşı)</div>
+      <div class="row levels">
+        <button data-level="easy">Kolay</button>
+        <button data-level="medium">Orta</button>
+        <button data-level="hard">Zor</button>
+      </div>
       <button id="btn-host" class="secondary">Oda kur ve arkadaşını davet et</button>
       <div class="row">
         <input id="join-code" maxlength="4" placeholder="KOD" />

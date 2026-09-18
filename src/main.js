@@ -14,6 +14,7 @@ const view = createRenderer(canvas);
 
 let game = null;
 let ai = null;
+let aiLevel = 'easy';
 let paused = false;
 let net = null;
 let isHost = false;
@@ -33,10 +34,11 @@ const REASONS = {
 
 // PeerJS reports these when the signalling websocket drops; the P2P data
 // channel can still be healthy, so a running match must survive them.
+const LEVEL_NAMES = { easy: 'Kolay', medium: 'Orta', hard: 'Zor' };
 const BROKER_ERRORS = ['network', 'server-error', 'socket-error', 'socket-closed', 'disconnected'];
 
 const ui = createUI({
-  onPractice: () => startPractice(),
+  onPractice: (level) => startPractice(level),
   onHost: () => hostRoom(),
   onJoin: (code) => joinRoom(code),
   onRematch: () => {
@@ -76,9 +78,10 @@ function makeHooks() {
   };
 }
 
-function startPractice() {
+function startPractice(level = aiLevel) {
+  aiLevel = level;
   game = createGame({ online: false, firstServer: 'near', hooks: makeHooks() });
-  ai = createAI();
+  ai = createAI(Math.random, aiLevel);
   paused = false;
   const n = net;
   net = null;
@@ -86,7 +89,7 @@ function startPractice() {
   ui.showHud();
   ui.setScore(game.rules);
   ui.setSpin(game.near.buttons);
-  ui.status('Antrenman');
+  ui.status(`Antrenman · ${LEVEL_NAMES[aiLevel]}`);
 }
 
 function startOnline() {
