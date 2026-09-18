@@ -22,6 +22,7 @@ let farTarget = null;
 let lastPaddleSend = 0;
 let lastHeard = 0;
 let pingInterval = null;
+let joinTimer = null;
 
 const REASONS = {
   out: 'Dışarı',
@@ -29,6 +30,10 @@ const REASONS = {
   missed: 'Karşılanamadı',
   'double-bounce': 'Çift sekme',
 };
+
+// PeerJS reports these when the signalling websocket drops; the P2P data
+// channel can still be healthy, so a running match must survive them.
+const BROKER_ERRORS = ['network', 'server-error', 'socket-error', 'socket-closed', 'disconnected'];
 
 const ui = createUI({
   onPractice: () => startPractice(),
@@ -63,6 +68,10 @@ function makeHooks() {
       if (!net) return;
       if (!remote) net.send({ type: 'point', winner: other(decision.winner), reason: decision.reason });
       if (isHost) sendScore();
+    },
+    onLet() {
+      ui.banner('Sayı tekrarlanıyor');
+      ui.setScore(game.rules);
     },
   };
 }
@@ -165,6 +174,8 @@ function makeNet() {
     },
     onError: (err) => {
       if (net !== self) return;
+      // A live match only needs the data channel; the 8 s heartbeat catches real peer loss.
+      if (game?.online && BROKER_ERRORS.includes(err?.type)) return;
       netError(err);
     },
   });
@@ -199,6 +210,11 @@ async function joinRoom(code) {
   try {
     await mine.join(code);
     if (net !== mine) return;
+    // the data channel may never open (dead room, blocked network): give up loudly
+    joinTimer = setTimeout(() => {
+      if (net !== mine || game) return;
+      leave('Bağlanılamadı');
+    }, 15000);
   } catch (err) {
     if (net !== mine) return;
     netError(err);
@@ -212,21 +228,43 @@ function leave(message = '') {
   net = null; // cleared first so the close handler does not recurse
   clearInterval(pingInterval);
   pingInterval = null;
+  clearTimeout(joinTimer);
+  joinTimer = null;
   n?.send({ type: 'bye' });
   n?.close();
   rtt = 0;
   if (document.pointerLockElement) document.exitPointerLock();
+  // drop ?room= so a reload does not auto-rejoin a room that is already gone
+  if (new URLSearchParams(location.search).has('room')) {
+    history.replaceState(null, '', location.pathname);
+  }
   ui.status('');
   ui.showMenu(message);
 }
 
 // ---- input ----
 const locked = () => document.pointerLockElement === canvas;
+// Some browsers and automation refuse Pointer Lock; then the absolute-mouse
+// fallback is the only way to play, so clicks must keep working as before.
+let lockDenied = !canvas.requestPointerLock;
+
+function requestLock() {
+  if (!canvas.requestPointerLock) {
+    lockDenied = true;
+    return;
+  }
+  const p = canvas.requestPointerLock();
+  if (p && typeof p.catch === 'function') p.catch(() => { lockDenied = true; });
+}
 
 canvas.addEventListener('mousedown', (e) => {
   if (!game) return;
-  if (!locked()) canvas.requestPointerLock?.();
+  const wasLocked = locked();
+  const wasPaused = paused;
+  if (!wasLocked) requestLock();
   paused = false;
+  // the click that grabs the cursor back or un-pauses must not also swing
+  if (!lockDenied && (!wasLocked || wasPaused)) return;
   if (e.button === 0) game.near.buttons.left = true;
   if (e.button === 2) game.near.buttons.right = true;
   ui.setSpin(game.near.buttons);
@@ -259,13 +297,30 @@ window.addEventListener('mousemove', (e) => {
 
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
+document.addEventListener('pointerlockerror', () => {
+  lockDenied = true;
+});
+
 document.addEventListener('pointerlockchange', () => {
-  if (!locked() && game && !game.online && game.phase !== 'over') {
+  if (locked()) {
+    lockDenied = false;
+    ui.banner('', 1);
+    return;
+  }
+  if (!game || game.phase === 'over') return;
+  if (game.online) {
+    ui.banner('İmleç serbest — devam etmek için tıkla', 2500); // online play never pauses
+  } else {
     paused = true;
     ui.banner('Duraklatıldı — devam etmek için tıkla', 60000);
-  } else if (locked()) {
-    ui.banner('', 1);
   }
+});
+
+window.addEventListener('blur', () => {
+  if (!game) return;
+  game.near.buttons.left = false;
+  game.near.buttons.right = false;
+  ui.setSpin(game.near.buttons);
 });
 
 window.addEventListener('pagehide', () => {

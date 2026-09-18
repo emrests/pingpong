@@ -17,7 +17,8 @@ Mouse ile yön, güç ve falso kontrolü olan 3D masa tenisi. Bilgisayara karş�
 - Topa doğru savur: vuruş. İleri hız = güç, yanal hız = yön
 - Sol tuş basılı: topspin · Sağ tuş basılı: backspin · Sert yanal savurma: yan falso
 - Servis: tıkla (top havaya atılır), düşerken vur
-- Esc: imleci bırak (antrenmanda duraklatır)
+- Esc: imleci bırak (antrenmanda duraklatır, online oyun devam eder)
+- Menü (sağ üstteki buton): maçtan çık ve menüye dön
 
 ## Online
 

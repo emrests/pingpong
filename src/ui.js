@@ -4,6 +4,7 @@ const show = (el, on) => el.classList.toggle('hidden', !on);
 export function createUI(actions) {
   const el = {
     hud: $('hud'), spin: $('spin'), status: $('status'), help: $('help'), banner: $('banner'),
+    menuBtn: $('btn-menu'),
     menu: $('menu'), menuMsg: $('menu-msg'), lobby: $('lobby'), code: $('code'),
     over: $('over'), overTitle: $('over-title'), overScore: $('over-score'),
     sNear: $('s-near'), sFar: $('s-far'), joinCode: $('join-code'), copy: $('btn-copy'),
@@ -21,6 +22,7 @@ export function createUI(actions) {
     if (e.key === 'Enter') $('btn-join').click();
   };
   $('btn-cancel').onclick = () => actions.onLeave();
+  el.menuBtn.onclick = () => actions.onLeave();
   $('btn-leave').onclick = () => actions.onLeave();
   $('btn-rematch').onclick = () => actions.onRematch();
   el.copy.onclick = async () => {
@@ -38,6 +40,7 @@ export function createUI(actions) {
     show(el.hud, playing || panel === el.over);
     show(el.spin, playing);
     show(el.help, playing);
+    show(el.menuBtn, playing);
   }
 
   return {

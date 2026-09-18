@@ -22,6 +22,8 @@
       #spin b { color: var(--accent); }
       #status { position: fixed; bottom: 18px; right: 20px; font-size: 12px; color: var(--muted); pointer-events: none; }
       #help { position: fixed; bottom: 18px; left: 20px; font-size: 12px; color: var(--muted); line-height: 1.6; pointer-events: none; }
+      #btn-menu { position: fixed; top: 16px; right: 16px; width: auto; margin-top: 0; padding: 8px 14px;
+        font-size: 13px; pointer-events: auto; z-index: 2; }
       #banner { position: fixed; top: 96px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff;
         padding: 8px 18px; border-radius: 999px; font-size: 14px; pointer-events: none; }
       .panel { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--card);
@@ -50,12 +52,13 @@
         <div id="s-far"><div class="lbl">RAKİP</div><div class="num">0</div></div>
       </div>
     </div>
+    <button id="btn-menu" class="secondary hidden">Menü</button>
     <div id="spin" class="hidden"></div>
     <div id="status"></div>
     <div id="help" class="hidden">
       Mouse: raketi hareket ettir · Topa doğru savur: vuruş<br />
       Sol tuş basılı: topspin · Sağ tuş basılı: backspin · Sert yana savur: yan falso<br />
-      Servis: tıkla (top havaya) ve düşerken vur · Esc: imleci bırak
+      Servis: tıkla (top havaya) ve düşerken vur · Esc: imleci bırak · Menü: sağ üstteki buton
     </div>
     <div id="banner" class="hidden"></div>
 
