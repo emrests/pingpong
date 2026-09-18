@@ -28,6 +28,7 @@ export const PADDLE_HOME = { x: 0, y: 1.0, z: 1.7 };
 export const TOSS_SPEED = 2.6;
 export const TOSS_TIMEOUT = 1.6;
 export const POINT_PAUSE = 1.2;
+export const RALLY_TIMEOUT = 8; // a live rally without a hit for this long is replayed as a let
 export const WIN_SCORE = 11;
 
 export const AI_SPEED = 2.8;

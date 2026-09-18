@@ -1,4 +1,4 @@
-import { DT, PADDLE_REACH, TOSS_SPEED, TOSS_TIMEOUT, POINT_PAUSE } from './constants.js';
+import { DT, PADDLE_REACH, TOSS_SPEED, TOSS_TIMEOUT, POINT_PAUSE, RALLY_TIMEOUT } from './constants.js';
 import { vec, mirror, createBall, cloneBall, mirrorBall } from './vec.js';
 import { stepBall } from './physics.js';
 import { createRules } from './rules.js';
@@ -24,6 +24,7 @@ export function createGame({ online = false, firstServer = 'near', hooks = {} } 
     hitCount: 0,
     _acc: 0,
     _tossTime: 0,
+    _lastHitTime: 0,
     _deadTimer: 0,
     _prevRel: { near: -1, far: -1 },
   };
@@ -55,6 +56,7 @@ export function createGame({ online = false, firstServer = 'near', hooks = {} } 
     }
     g.phase = 'live';
     g.hitCount++;
+    g._lastHitTime = g.time;
     hooks.onHit?.(side);
     return true;
   }
@@ -79,6 +81,21 @@ export function createGame({ online = false, firstServer = 'near', hooks = {} } 
     g.phase = 'dead';
     g._deadTimer = POINT_PAUSE;
     hooks.onPoint?.(decision, remote);
+  }
+
+  const finite = (v) => Number.isFinite(v.x) && Number.isFinite(v.y) && Number.isFinite(v.z);
+  const ballIsSane = () => finite(g.ball.pos) && finite(g.ball.vel) && finite(g.ball.spin);
+
+  // The rally can no longer be judged — the ball state escaped (NaN/Infinity) or
+  // nobody hit it for RALLY_TIMEOUT (online: a hit message that never arrived).
+  // Replay the point instead of staying stuck in 'live'.
+  function replayPoint() {
+    g.rules.setScore(g.rules.score.near, g.rules.score.far); // same score, fresh rally state
+    g.phase = 'held';
+    g._acc = 0;
+    g._lastHitTime = g.time;
+    placeHeldBall();
+    hooks.onLet?.();
   }
 
   function stepOnce() {
@@ -119,6 +136,10 @@ export function createGame({ online = false, firstServer = 'near', hooks = {} } 
       return;
     }
     if (g.phase === 'over') return;
+    if (g.phase === 'live' && (!ballIsSane() || g.time - g._lastHitTime > RALLY_TIMEOUT)) {
+      replayPoint();
+      return;
+    }
 
     simulate(dt);
 
@@ -149,11 +170,15 @@ export function createGame({ online = false, firstServer = 'near', hooks = {} } 
   };
 
   g.applyRemoteHit = (ball, lead = 0) => {
+    // The far side is the authority for its own returns: if our local sim already
+    // counted its second bounce while the hit message was in flight, undo that.
+    if (g.rules.state === 'rally' && g.rules.lastHitter === 'near') g.rules.bounces = 1;
     // rules.onHit rejects anything illegal (wrong server, game over, double hit)
     if (!g.rules.onHit('far')) return;
     g.ball = cloneBall(ball);
     g.phase = 'live';
     g.hitCount++;
+    g._lastHitTime = g.time;
     g._prevRel.near = relOf('near');
     simulate(Math.min(MAX_LEAD, Math.max(0, lead)));
   };

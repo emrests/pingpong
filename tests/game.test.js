@@ -113,6 +113,51 @@ describe('game', () => {
     expect(onPoint.mock.calls[0][1]).toBe(false);
   });
 
+  it('online: accepts a remote hit that arrives after the local sim counted two bounces', () => {
+    const g = createGame({ online: true });
+    g.update(1 / 60);
+    expect(g.forceHit('near', swing)).toBe(true);
+    // let the shot land on the far side
+    for (let i = 0; i < 180 && g.rules.bounces < 1; i++) g.update(1 / 60);
+    expect(g.rules.bounces).toBe(1);
+    // Stage the late-return race directly (rather than shaping a natural short
+    // ball): the local sim counts the opponent's second bounce just before its
+    // 'hit' message arrives.
+    g.rules.bounces = 2;
+    expect(g.rules.canHit('far')).toBe(false);
+
+    g.applyRemoteHit({ pos: vec(0, 1.0, -0.6), vel: vec(0, 1.2, 6), spin: vec() }, 0);
+    expect(g.rules.lastHitter).toBe('far');
+    expect(g.phase).toBe('live');
+  });
+
+  it('online: replays the point as a let when the ball state goes bad', () => {
+    const onLet = vi.fn();
+    const g = createGame({ online: true, hooks: { onLet } });
+    g.update(1 / 60);
+    g.forceHit('near', swing);
+    g.ball.pos.x = NaN;
+    g.update(1 / 60);
+    expect(g.phase).toBe('held');
+    expect(g.rules.score).toEqual({ near: 0, far: 0 });
+    expect(g.rules.server).toBe('near');
+    expect(onLet).toHaveBeenCalledTimes(1);
+  });
+
+  it('online: replays the point as a let when a rally stalls', () => {
+    const onLet = vi.fn();
+    const g = createGame({ online: true, hooks: { onLet } });
+    g.update(1 / 60);
+    g.forceHit('near', swing);
+    run(g, 7);
+    expect(g.phase).toBe('live');
+    expect(onLet).not.toHaveBeenCalled();
+    run(g, 2);
+    expect(g.phase).toBe('held');
+    expect(g.rules.score).toEqual({ near: 0, far: 0 });
+    expect(onLet).toHaveBeenCalledTimes(1);
+  });
+
   it('game over stops play', () => {
     const g = createGame({});
     // near=10, far=2 keeps 'near' on serve (serve rotates every 2 points); one
