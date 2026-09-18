@@ -1,5 +1,7 @@
 # Ping Pong
 
+**Oyna:** https://emrests.github.io/pingpong/
+
 Mouse ile yön, güç ve falso kontrolü olan 3D masa tenisi. Bilgisayara karşı antrenman ve P2P (WebRTC) ile online 1v1.
 
 ## Çalıştırma
