@@ -82,9 +82,9 @@ export function createRenderer(canvas) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xefece6);
 
-  const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 50);
-  camera.position.set(0, 1.9, 3.35);
-  camera.lookAt(0, 0.8, -0.2);
+  const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 50);
+  camera.position.set(0, 1.7, 3.0);
+  camera.lookAt(0, 0.85, 0);
 
   scene.add(new THREE.HemisphereLight(0xffffff, 0xd8d2c4, 1.1));
   const sun = new THREE.DirectionalLight(0xffffff, 1.6);
@@ -132,7 +132,7 @@ export function createRenderer(canvas) {
       renderer.setSize(w, h, false);
       camera.aspect = w / h;
       // keep the whole table visible on narrow windows
-      camera.fov = camera.aspect < 1.2 ? 50 + (1.2 - camera.aspect) * 35 : 50;
+      camera.fov = camera.aspect < 1.2 ? 55 + (1.2 - camera.aspect) * 35 : 55;
       camera.updateProjectionMatrix();
     }
   }
