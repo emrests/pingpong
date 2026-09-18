@@ -46,10 +46,10 @@ describe('game', () => {
     g.far.pos.x = 1.3; // park the opponent out of the way so it can't auto-return the serve
     g.update(1 / 60);
     g.toss();
-    // wait for the ball to come back down, then push the paddle forward
+    // wait for the ball to come back down to paddle height, then push the paddle forward
     let served = false;
     run(g, 1.5, () => {
-      if (g.phase === 'tossed' && g.ball.vel.y < 0) g.near.pos.z -= 0.04;
+      if (g.phase === 'tossed' && g.ball.vel.y < 0 && g.ball.pos.y < 1.5) g.near.pos.z -= 0.04;
       if (g.phase === 'live') served = true;
     });
     expect(served).toBe(true);

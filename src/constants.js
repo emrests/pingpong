@@ -25,7 +25,7 @@ export const PADDLE_REACH = { x: 0.13, y: 0.17 };
 export const PADDLE_BOUNDS = { xMin: -1.3, xMax: 1.3, zMin: 0.5, zMax: 2.3 };
 export const PADDLE_HOME = { x: 0, y: 1.0, z: 1.7 };
 
-export const TOSS_SPEED = 2.6;
+export const TOSS_SPEED = 3.8; // ~0.7 m up, ~0.75 s in the air: enough time to swing with the camera
 export const TOSS_TIMEOUT = 1.6;
 export const POINT_PAUSE = 1.2;
 export const RALLY_TIMEOUT = 8; // a live rally without a hit for this long is replayed as a let
