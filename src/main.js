@@ -6,6 +6,7 @@ import { createUI } from './ui.js';
 import { createNet } from './net.js';
 import { other } from './rules.js';
 import { mirror, mirrorBall } from './vec.js';
+import { isBall, isVec, isSide, isScore } from './validate.js';
 import { PADDLE_BOUNDS } from './constants.js';
 
 const canvas = document.getElementById('scene');
@@ -114,16 +115,21 @@ function onMessage(msg) {
   if (msg.type === 'full') return leave('Oda dolu');
   if (!game) return;
   if (msg.type === 'paddle') {
+    if (!isVec(msg.pos)) return;
     farTarget = msg.pos;
     game.far.buttons.left = !!msg.left;
     game.far.buttons.right = !!msg.right;
   } else if (msg.type === 'hit') {
+    if (!isBall(msg.ball)) return;
     game.applyRemoteHit(msg.ball, rtt / 2000);
   } else if (msg.type === 'ball') {
+    if (!isBall(msg.ball)) return;
     game.applyRemoteBall(msg.ball);
   } else if (msg.type === 'point') {
-    game.applyRemotePoint(msg.winner, msg.reason);
+    if (!isSide(msg.winner)) return;
+    game.applyRemotePoint(msg.winner, Object.hasOwn(REASONS, msg.reason) ? msg.reason : 'missed');
   } else if (msg.type === 'score') {
+    if (!isScore(msg.near) || !isScore(msg.far)) return;
     if (game.rules.score.near !== msg.near || game.rules.score.far !== msg.far) {
       game.rules.setScore(msg.near, msg.far);
       ui.setScore(game.rules);
